@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import math as m
+import random
+import copy
 # from sklearn.cluster import KMeans
 
 
@@ -15,7 +17,7 @@ def sse(model, data):
         sse += np.sum([m.pow(euclidianDistance(model.centroids[i],data[x]),2) for x in [k for k in range(0,len(data)) if pred[k]==i]])
     return sse
 
-class k_means:
+class k_medoids:
     def __init__(self, k=2, thresold = 0.001, max_iter = 300, has_converged=False):
     
         ''' 
@@ -48,31 +50,6 @@ class k_means:
         indexes = np.random.randint(0, len(X)-1,3)
         self.centroids=X[indexes]
             
-        
-    def updateCentroids(self, cur_centroids):
-        '''
-        Class constructor
-        
-        Parameters
-        ----------
-        cur_centroids: list of new centroids
-        
-        '''
-        self.has_converged=True
-        
-        for c in range(0,self.k):
-            prev_centroid = self.centroids[c]
-            cur_centroid  = cur_centroids[c]
-            #checking if % of difference between old position and new position is more than thresold
-            
-            #TODO d=?
-
-            # d = euclidianDistance(prev_centroid,cur_centroid)
-            d = ((prev_centroid[0] - cur_centroid[0])/prev_centroid[0] + (prev_centroid[1] - cur_centroid[1])/prev_centroid[1])*100
-            if  d > self.thresold:
-                self.has_converged = False
-                self.centroids = cur_centroids
-            
     def fit(self, X):
         '''
         FIT function, used to find clusters
@@ -83,47 +60,34 @@ class k_means:
         '''
         #Init list cluster centroids
         self.initCentroids(X)
-            
-        #Main loop
-        for i in range(self.max_iter):  
-            #Centroids for this iteration
-            cur_centroids = []
-            
-            for centroid in range(0,self.k):
-                #List samples of current cluster
-                samples = []
-                
-                for k in range(len(X)):
-                    d_list = []
-                    for j in range(self.k):
-                        d_list.append(euclidianDistance(self.centroids[j], X[k]))
-                    
-                    # Cluster has minimal distance between its centroid and data sample
-                    # TODO (c=???)
-                    c = d_list.index(min(d_list))
-
-                    #Store sample to list
-                    if c == centroid:
-                        samples.append(X[k]) 
-                
-                #New centroids of each cluster is calculated by mean of all samples closest to it
-                new_centroid = [0,0]
-                new_centroid[0] = np.mean([x[0] for x in samples])
-                new_centroid[1] = np.mean([x[1] for x in samples])
-                #TODO (new_centroid=???)
-
-            
-                cur_centroids.append(new_centroid)
-                
-            self.updateCentroids(cur_centroids)
-
-
-            
-            if self.has_converged:
-                break
-        
+        pickupPoint = copy.deepcopy(self.centroids)
+        # for c in self.centroids:
+        #     pickupPoint.append(c)
+        # print(pickupPoint)
+        while len(pickupPoint) < len(X):
+            # print("{} & {}".format(len(pickupPoint),len(X)))
+            cur_centroids = copy.deepcopy(self.centroids)
+            prevSSE = sse(self,X)
+            ranInt = random.randint(0,len(X)-1)
+            ranPoint = X[ranInt]
+            # print(ranPoint)
+            # print(pickupPoint)
+            while ranPoint in pickupPoint:
+                ranInt = random.randint(0,len(X)-1)
+                ranPoint = X[ranInt]
+            # pickupPoint.append(ranPoint)
+            pickupPoint = np.append(pickupPoint,ranPoint)
+            ic = self.indexCentroidOfPoint(ranPoint)
+            self.centroids[ic] = ranPoint
+            currSSE = sse(self,X)
+            if currSSE >= prevSSE:
+                self.centroids[ic] = cur_centroids[ic]
         #Each cluster represented by its centroid
         return np.array(self.centroids)
+
+    def indexCentroidOfPoint(self, point):
+        return np.argmin([euclidianDistance(c,point) for c in self.centroids])
+            
 
     def predict(self, data):
         ''' 
@@ -191,11 +155,11 @@ def main():
     # visualize(X, pred_label)
 
     # test result k-means class
-    model1=k_means(k=3)
+    model1=k_medoids(k=3)
     print('Centers found by your model:')
     print(model1.fit(X))
     pred=model1.predict(X)
-    print(sse(model1,X))
+    # print(sse(model1,X))
     visualize(X,pred)
 main()
  
